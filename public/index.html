@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Letter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== LANDING ===== -->
+  <div id="view-landing" class="view active">
+    <div class="landing-box">
+      <div class="landing-title">
+        <span class="letter-icon">&#10084;</span>
+        <h1>Love Letter</h1>
+        <p class="tagline">Risk. Deduction. Devotion.</p>
+      </div>
+      <div class="form-block">
+        <input id="inp-name" type="text" placeholder="Your name" maxlength="20" autocomplete="off">
+        <button id="btn-create" class="btn-primary">Create Room</button>
+        <div class="divider"><span>or join</span></div>
+        <div class="join-row">
+          <input id="inp-code" type="text" placeholder="Room code" maxlength="4" autocomplete="off">
+          <button id="btn-join" class="btn-secondary">Join</button>
+        </div>
+        <div id="landing-error" class="error-msg hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOBBY ===== -->
+  <div id="view-lobby" class="view hidden">
+    <div class="lobby-box">
+      <h2>Waiting Room</h2>
+      <div class="room-code-row">
+        Room code: <span id="lbl-room-code" class="room-code-big">----</span>
+        <button id="btn-copy" class="btn-tiny" title="Copy code">Copy</button>
+      </div>
+      <div id="lobby-player-list" class="lobby-player-list"></div>
+      <div class="lobby-footer">
+        <div id="host-controls" class="hidden">
+          <div class="bot-row">
+            <button id="btn-add-bot" class="btn-secondary">+ Add Bot</button>
+            <button id="btn-remove-bot" class="btn-ghost">− Remove Bot</button>
+          </div>
+          <button id="btn-start" class="btn-primary">Start Game</button>
+        </div>
+        <p id="lbl-wait" class="muted hidden">Waiting for host to start&hellip;</p>
+        <div id="lobby-error" class="error-msg hidden"></div>
+      </div>
+      <div class="rules-summary">
+        <strong>Quick rules:</strong> On your turn, draw a card then play one.
+        Eliminate opponents or hold the highest card when the deck runs out to win the round.
+        First to earn enough Tokens of Affection wins!
+        <br>2 players = 7 tokens &bull; 3 players = 5 &bull; 4+ players = 4
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div id="view-game" class="view hidden">
+
+    <!-- header bar -->
+    <div class="game-header">
+      <div class="header-left">
+        <span class="heart-small">&#10084;</span> Love Letter
+      </div>
+      <div class="header-center">
+        <span id="hdr-round">Round 1</span>
+        &bull;
+        <span id="hdr-deck">Deck: 16</span>
+      </div>
+      <div class="header-right" id="hdr-status"></div>
+    </div>
+
+    <!-- main board -->
+    <div class="board">
+
+      <!-- opponents row -->
+      <div id="opponents-area" class="opponents-area"></div>
+
+      <!-- middle row: revealed cards (2p) + action panel -->
+      <div class="middle-row">
+        <div id="revealed-area" class="revealed-area hidden">
+          <div class="area-label">Removed from game</div>
+          <div id="revealed-cards" class="card-row"></div>
+        </div>
+        <div id="action-panel" class="action-panel hidden">
+          <div class="ap-card-preview" id="ap-card-preview"></div>
+          <div class="ap-controls" id="ap-controls"></div>
+          <div class="ap-buttons">
+            <button id="btn-play-card" class="btn-primary">Play Card</button>
+            <button id="btn-cancel" class="btn-ghost">Cancel</button>
+          </div>
+        </div>
+        <div id="status-banner" class="status-banner"></div>
+      </div>
+
+      <!-- my area -->
+      <div class="my-area">
+        <div id="my-info" class="my-info"></div>
+        <div id="my-hand" class="my-hand"></div>
+      </div>
+
+    </div><!-- /board -->
+
+    <!-- game log -->
+    <div class="log-panel">
+      <div class="log-title">Game Log</div>
+      <div id="game-log" class="game-log"></div>
+    </div>
+
+    <!-- round/game end overlay -->
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-box">
+        <div id="ov-title" class="ov-title"></div>
+        <div id="ov-body" class="ov-body"></div>
+        <div id="ov-scores" class="ov-scores"></div>
+        <div class="ov-buttons">
+          <button id="btn-next-round" class="btn-primary hidden">Next Round</button>
+          <button id="btn-new-game" class="btn-primary hidden">New Game</button>
+          <p id="lbl-ov-wait" class="muted hidden">Waiting for host&hellip;</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /view-game -->
+
+  <!-- Action toast (shows what was just played) -->
+  <div id="action-toast" class="action-toast" role="status"></div>
+
+  <!-- Priest reveal modal -->
+  <div id="priest-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-title">Priest</div>
+      <p id="priest-text"></p>
+      <div id="priest-card-display"></div>
+      <button id="btn-priest-ok" class="btn-primary">Got it</button>
+    </div>
+  </div>
+
+  <!-- Disconnect notice -->
+  <div id="disconnect-notice" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-title">Disconnected</div>
+      <p>A player has disconnected from the game.</p>
+      <button onclick="location.reload()" class="btn-primary">Leave Room</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
