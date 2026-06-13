@@ -65,6 +65,8 @@ function postGameUpdate(roomCode) {
 function scheduleBotTurn(roomCode) {
   const room = rooms[roomCode];
   if (!room?.game) return;
+  if (room.waitingForPriestAck) return; // human is reading a priest reveal
+
   const game = room.game;
   if (game.phase !== 'playing') return;
 
@@ -217,6 +219,8 @@ io.on('connection', (socket) => {
       const { viewerId, targetId, card } = result.priestReveal;
       const viewer = room.players.find(p => p.id === viewerId);
       if (viewer?.socketId) {
+        // Human is reading the reveal — pause bots until they acknowledge
+        room.waitingForPriestAck = true;
         io.to(viewer.socketId).emit('priest_reveal', {
           targetId,
           targetName: room.players.find(p => p.id === targetId)?.name,
@@ -250,6 +254,15 @@ io.on('connection', (socket) => {
     room.game = new GameState(room.players.map(p => ({ id: p.id, name: p.name })));
     cb?.({ success: true });
     postGameUpdate(roomCode);
+  });
+
+  socket.on('priest_ack', (_, cb) => {
+    const { roomCode } = socket.data;
+    const room = rooms[roomCode];
+    if (!room) return;
+    room.waitingForPriestAck = false;
+    cb?.({ success: true });
+    scheduleBotTurn(roomCode); // resume now that human has read the reveal
   });
 
   socket.on('disconnect', () => {

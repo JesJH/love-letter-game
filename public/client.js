@@ -4,14 +4,14 @@
    Card metadata
    ============================================================ */
 const CARDS = {
-  1: { name: 'Guard',    symbol: '⚔',  desc: 'Name a non-Guard card. If the target holds it, they are eliminated.' },
-  2: { name: 'Priest',   symbol: '📜', desc: 'Look at another player\'s hand.' },
-  3: { name: 'Baron',    symbol: '⚖',  desc: 'Compare hands with another player. The lower card is eliminated.' },
-  4: { name: 'Handmaid', symbol: '🛡', desc: 'You are protected from card effects until your next turn.' },
-  5: { name: 'Prince',   symbol: '♞',  desc: 'Choose any player (including yourself) to discard and redraw.' },
-  6: { name: 'King',     symbol: '♛',  desc: 'Trade hands with another player.' },
-  7: { name: 'Countess', symbol: '💎', desc: 'Must be played if you hold the King or Prince.' },
-  8: { name: 'Princess', symbol: '❤', desc: 'If you discard this card for any reason, you are eliminated.' },
+  1: { name: 'Guard',    symbol: '⚔',  count: 5, desc: 'Name a non-Guard card. If the target holds it, they are eliminated.' },
+  2: { name: 'Priest',   symbol: '📜', count: 2, desc: 'Look at another player\'s hand.' },
+  3: { name: 'Baron',    symbol: '⚖',  count: 2, desc: 'Compare hands with another player. The lower card is eliminated. Ties are safe.' },
+  4: { name: 'Handmaid', symbol: '🛡', count: 2, desc: 'You are protected from all card effects until your next turn.' },
+  5: { name: 'Prince',   symbol: '♞',  count: 2, desc: 'Choose any player (including yourself) to discard their hand and draw a new card.' },
+  6: { name: 'King',     symbol: '♛',  count: 1, desc: 'Trade hands with another player.' },
+  7: { name: 'Countess', symbol: '💎', count: 1, desc: 'Must be played if you also hold the King or Prince.' },
+  8: { name: 'Princess', symbol: '❤', count: 1, desc: 'If you discard this card for any reason, you are immediately eliminated.' },
 };
 
 const NEEDS_TARGET   = new Set([1, 2, 3, 6]);      // requires another player
@@ -166,6 +166,8 @@ socket.on('game_state', (state) => {
 
   if (!document.getElementById('view-game').classList.contains('active')) {
     showView('game');
+    renderRefPanel();
+    document.getElementById('ref-toggle').classList.remove('hidden');
   }
 
   renderGame(state);
@@ -225,7 +227,10 @@ function renderGame(state) {
   // Game log + action toast for new entries
   renderLog(state.gameLog);
   const latestEntry = state.gameLog[state.gameLog.length - 1] || '';
-  if (latestEntry && latestEntry !== lastLogEntry && !latestEntry.startsWith('---')) {
+  if (latestEntry.startsWith('---')) {
+    // New round started — reset toast tracker
+    lastLogEntry = latestEntry;
+  } else if (latestEntry && latestEntry !== lastLogEntry) {
     lastLogEntry = latestEntry;
     showActionToast(latestEntry);
   }
@@ -447,6 +452,7 @@ socket.on('priest_reveal', ({ targetName, card }) => {
 
 document.getElementById('btn-priest-ok').addEventListener('click', () => {
   document.getElementById('priest-modal').classList.add('hidden');
+  socket.emit('priest_ack'); // let server resume bot turns
 });
 
 /* ============================================================
@@ -518,6 +524,61 @@ document.getElementById('btn-new-game').addEventListener('click', () => {
 });
 
 /* ============================================================
+   Card hover tooltip
+   ============================================================ */
+function showCardTooltip(value, cardEl) {
+  const info = CARDS[value];
+  if (!info) return;
+  const tip = document.getElementById('card-tooltip');
+  tip.innerHTML = `
+    <div class="ct-header">
+      <span class="ct-symbol">${info.symbol}</span>
+      <span class="ct-name">${info.name}</span>
+      <span class="ct-count">×${info.count} in deck</span>
+    </div>
+    <div class="ct-desc">${escHtml(info.desc)}</div>
+  `;
+  const rect = cardEl.getBoundingClientRect();
+  tip.style.left = `${rect.left + rect.width / 2}px`;
+  tip.style.top  = `${rect.top}px`;
+  tip.classList.remove('hidden');
+}
+
+function hideCardTooltip() {
+  document.getElementById('card-tooltip').classList.add('hidden');
+}
+
+// Wire up tooltip via event delegation once DOM is ready
+document.getElementById('my-hand').addEventListener('mouseover', e => {
+  const card = e.target.closest('.card[data-value]');
+  if (card) showCardTooltip(parseInt(card.dataset.value), card);
+});
+document.getElementById('my-hand').addEventListener('mouseleave', hideCardTooltip);
+
+/* ============================================================
+   Card reference panel
+   ============================================================ */
+function renderRefPanel() {
+  const rows = Object.entries(CARDS).map(([val, info]) => `
+    <div class="ref-row">
+      <span class="ref-val cv${val}">${val}</span>
+      <div class="ref-info">
+        <div class="ref-name">${info.symbol} ${info.name}</div>
+        <div class="ref-desc">${escHtml(info.desc)}</div>
+      </div>
+      <span class="ref-count">×${info.count}</span>
+    </div>
+  `).join('');
+  document.getElementById('ref-panel').innerHTML =
+    `<div class="ref-title">Card Reference</div>${rows}`;
+}
+
+document.getElementById('ref-toggle').addEventListener('click', () => {
+  const panel = document.getElementById('ref-panel');
+  panel.classList.toggle('hidden');
+});
+
+/* ============================================================
    Action toast
    ============================================================ */
 function showActionToast(text) {
@@ -552,8 +613,15 @@ function showActionToast(text) {
    Game log
    ============================================================ */
 function renderLog(entries) {
+  // Only show the current round — find the last round-start marker
+  let start = 0;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].startsWith('---')) { start = i; break; }
+  }
+  const current = entries.slice(start);
+
   const el = document.getElementById('game-log');
-  el.innerHTML = [...entries].reverse().map(line => {
+  el.innerHTML = [...current].reverse().map(line => {
     let cls = 'log-entry';
     if (line.startsWith('---')) cls += ' log-round';
     else if (line.includes('eliminated')) cls += ' log-elim';

@@ -590,6 +590,82 @@ select:focus { border-color: var(--gold); }
 #priest-card-display { display: flex; justify-content: center; margin: 16px 0; }
 
 /* ============================================================
+   CARD HOVER TOOLTIP
+   ============================================================ */
+.card-tooltip {
+  position: fixed;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  padding: 12px 16px;
+  width: 220px;
+  z-index: 300;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  transform: translate(-50%, calc(-100% - 12px));
+}
+.ct-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ct-symbol { font-size: 1.5rem; line-height: 1; }
+.ct-name   { font-size: 1rem; font-weight: bold; color: var(--gold); }
+.ct-count  { font-size: 0.72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.ct-desc   { font-size: 0.82rem; color: var(--cream); line-height: 1.55; }
+
+/* ============================================================
+   CARD REFERENCE PANEL
+   ============================================================ */
+.ref-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 38px;
+  height: 38px;
+  background: var(--gold);
+  color: #1a0a0a;
+  border: none;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 80;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s;
+}
+.ref-toggle:hover { filter: brightness(1.15); }
+
+.ref-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 66px;
+  width: 310px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  z-index: 80;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  max-height: 75vh;
+  overflow-y: auto;
+}
+.ref-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+.ref-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 6px 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(90,42,70,0.35);
+}
+.ref-row:last-child { border-bottom: none; }
+.ref-val    { font-size: 1.1rem; font-weight: bold; text-align: center; }
+.ref-info   {}
+.ref-name   { font-size: 0.88rem; font-weight: bold; color: var(--cream); margin-bottom: 2px; }
+.ref-desc   { font-size: 0.74rem; color: var(--muted); line-height: 1.45; }
+.ref-count  { font-size: 0.72rem; color: var(--muted); white-space: nowrap; padding-top: 3px; }
+
+/* ============================================================
    ACTION TOAST
    ============================================================ */
 .action-toast {
