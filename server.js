@@ -74,8 +74,11 @@ function scheduleBotTurn(roomCode) {
   const entry   = room.players.find(p => p.id === current.id);
   if (!entry?.isBot) return;
 
-  // Delay long enough for the player to read what happened
-  const delay = 2000 + Math.random() * 1000;
+  // If all human players are eliminated, resolve the round quickly
+  const humansOut = room.players
+    .filter(p => !p.isBot)
+    .every(p => game.playerStates[p.id]?.eliminated);
+  const delay = humansOut ? 400 : (2000 + Math.random() * 1000);
   setTimeout(() => executeBotTurn(roomCode, current.id), delay);
 }
 

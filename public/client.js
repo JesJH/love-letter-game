@@ -180,6 +180,7 @@ function renderGame(state) {
 
   const me = state.players.find(p => p.id === myPlayerId);
   const isMyTurn = state.currentPlayerId === myPlayerId && state.phase === 'playing';
+  const iEliminated = me?.eliminated ?? false;
 
   if (state.phase === 'playing') {
     const curr = state.players.find(p => p.id === state.currentPlayerId);
@@ -187,6 +188,10 @@ function renderGame(state) {
   } else {
     document.getElementById('hdr-status').textContent = '';
   }
+
+  // Restart button: host only, once game is underway
+  const gameActive = ['playing', 'round_end', 'game_end'].includes(state.phase);
+  document.getElementById('btn-restart').classList.toggle('hidden', !isHost || !gameActive);
 
   // Opponents
   const opponents = state.players.filter(p => p.id !== myPlayerId);
@@ -215,7 +220,9 @@ function renderGame(state) {
 
   // Status banner
   const banner = document.getElementById('status-banner');
-  if (state.phase === 'playing' && !isMyTurn) {
+  if (iEliminated && state.phase === 'playing') {
+    banner.innerHTML = '<span style="color:#e06060">You have been eliminated — resolving round…</span>';
+  } else if (state.phase === 'playing' && !isMyTurn) {
     const curr = state.players.find(p => p.id === state.currentPlayerId);
     banner.textContent = `Waiting for ${curr?.name ?? ''}…`;
   } else if (state.phase === 'playing' && isMyTurn) {
@@ -510,6 +517,17 @@ function renderOverlay(state) {
     </div>
   `).join('');
 }
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  if (!confirm('Restart the game? All tokens will be reset.')) return;
+  socket.emit('new_game', {}, (res) => {
+    if (res?.error) alert(res.error);
+  });
+});
+
+document.getElementById('btn-leave').addEventListener('click', () => {
+  location.reload();
+});
 
 document.getElementById('btn-next-round').addEventListener('click', () => {
   socket.emit('next_round', {}, (res) => {
