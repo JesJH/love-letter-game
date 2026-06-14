@@ -1,11 +1,12 @@
 # Love Letter — Online Multiplayer Card Game
 
 ## What this is
-A real-time online implementation of the Love Letter card game. Players connect via a shared 4-letter room code and play in their browsers. Computer opponents (bots) are available.
+A real-time online implementation of the Love Letter card game. Players connect via a shared 4-letter room code and play in their browsers. Computer opponents (bots) are available. Installable as a PWA on iOS and Android.
 
 ## Tech stack
 - **Backend:** Node.js, Express, Socket.io
 - **Frontend:** Vanilla HTML/CSS/JS (no framework), single-page app
+- **PWA:** manifest.json + service worker for home screen install
 
 ## Running locally
 ```bash
@@ -24,6 +25,12 @@ public/
   index.html           — Single-page app with three views: landing, lobby, game
   style.css            — Dark medieval/romantic theme (burgundy, gold, cream)
   client.js            — Socket.io client; full UI rendering and event handling
+  manifest.json        — PWA manifest (name, colors, icons)
+  sw.js                — Service worker: precaches static assets, skips socket.io
+  icon.svg             — SVG app icon (gold heart on dark background)
+  icons/
+    icon-192.png       — PNG icon for Android install prompt + iOS apple-touch-icon
+    icon-512.png       — PNG icon for splash screens and maskable use
 ```
 
 ## Socket events
@@ -37,6 +44,7 @@ public/
 | `remove_bot` | — | Host removes the last bot |
 | `start_game` | — | Host starts the game (min 2 players) |
 | `play_card` | `{ cardValue, targetPlayerId?, guessedValue? }` | Plays a card on your turn |
+| `priest_ack` | — | Player dismissed the Priest reveal modal; resumes bot scheduling |
 | `next_round` | — | Host advances to the next round |
 | `new_game` | — | Host resets with the same player list |
 
@@ -73,10 +81,22 @@ The bot tracks all publicly visible discarded cards, calculates remaining card p
 - **King:** only trades when holding a card ≤ 3
 - **Princess:** never voluntarily played
 
-Bots play with a ~2 second delay so you can follow the action.
+Bots play with a ~2 second delay. If all human players are eliminated mid-round, bots switch to 400ms turns to resolve the round quickly.
 
 ## Key implementation notes
 - `GameState.getStateFor(playerId)` hides other players' hands — each client only sees their own cards
-- Bot turns are scheduled server-side via `setTimeout` after each `postGameUpdate`
-- The Countess rule (must discard if holding King or Prince) is enforced both client-side (disables the card) and server-side (returns an error)
+- Bot turns are scheduled server-side via `setTimeout` inside `postGameUpdate`
+- `room.waitingForPriestAck` pauses bot scheduling while a human reads a Priest reveal; cleared by the `priest_ack` event
+- The Countess rule (must discard if holding King or Prince) is enforced client-side (card disabled) and server-side (returns error)
 - 2-player mode removes 3 additional cards face-up at round start per the rules
+- Game log shown in UI is filtered to the current round only (sliced at the last `---` separator)
+- Host sees a **↺ Restart** button in the game header; all players see a **Leave** button
+- PWA icons generated with pure Python stdlib (no Pillow) using the algebraic heart curve `(x²+y²−1)³ − x²y³ ≤ 0`
+
+## Deploying publicly (required for mobile PWA off local network)
+Service workers require HTTPS. Easiest host: **Render** (free tier).
+1. Go to render.com → New Web Service → connect `JesJH/love-letter-game`
+2. Build command: `npm install` · Start command: `npm start`
+3. Render provides a `https://your-app.onrender.com` URL automatically
+
+Once hosted, users open the URL in Safari (iOS) or Chrome (Android) and use "Add to Home Screen" to install.
